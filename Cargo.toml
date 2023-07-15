@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 arrow = { version = "43.0.0", features = ["pyo3", "pyarrow"] }
 arrow2 = { version = "0.17.3", features = ["arrow", "io_ipc"] }
-polars = { version = "0.31.1", features = ["csv", "temporal", "fmt", "dtype-full", "ipc", "ipc_streaming"] }
+polars = { version = "0.31.1", features = ["csv", "temporal", "fmt", "dtype-full", "ipc", "ipc_streaming", "rows"] }
 pyo3 = "0.19.1"
