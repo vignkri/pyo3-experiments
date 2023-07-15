@@ -27,7 +27,8 @@ impl<'a> PythonHandler<'a> {
         }
     }
 
-    fn run(&self) -> Result<Vec<u8>, PyErr> {
+    ///
+    fn run<T: pyo3::IntoPy<Py<PyAny>>>(&self, data: Box<T>) -> Result<Vec<u8>, PyErr> {
         // generate a result from the python interface
         let res = Python::with_gil(|python| -> Result<Vec<u8>, PyErr> {
             // log the currently utilised version of python
@@ -41,10 +42,7 @@ impl<'a> PythonHandler<'a> {
                 .unwrap();
 
             // run the code
-            let data = String::from("hello");
-            let argument_data = data.as_bytes();
-
-            let result: &PyAny = app.call((argument_data.into_py(python),), None)?;
+            let result: &PyAny = app.call((data.into_py(python),), None)?;
 
             // handle data conversions to the internal rust objects
             let data: &[u8] = result.extract()?;
@@ -64,7 +62,14 @@ fn main() {
 
     // read the file structures and handle the application layer
     let snake = PythonHandler::new("/cart/entry.py");
-    let result_from_python = snake.run();
+
+    // Store in box and retrieve from box
+    let data = String::from("hello");
+    let argument_data = data.as_bytes();
+    let as_boxed = Box::new(argument_data);
+
+    // generate result
+    let result_from_python = snake.run(as_boxed);
 
     // run from python
     match result_from_python {
