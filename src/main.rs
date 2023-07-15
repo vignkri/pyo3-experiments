@@ -4,10 +4,10 @@
 //! and passed from python using bytes that are parsed back.
 
 use polars::{
-    io::{SerReader, SerWriter},
+    io::{ipc::IpcCompression, SerReader, SerWriter},
     prelude::IpcWriter,
 };
-use pyo3::{prelude::*, types::PyBytes};
+use pyo3::prelude::*;
 use std::{fs::File, io::Read, marker::PhantomData};
 
 /// Initialiser for the python handle
@@ -78,7 +78,11 @@ fn main() {
         .expect("unable to parse to csv dataframe");
 
     let mut buffer = Vec::new();
-    let mut writer = IpcWriter::new(&mut buffer);
+
+    // issue: only writes 39723 bytes and the buffer also is only 39727 bytes. However, the expected
+    // metadata bytes are approximately 1330795073 bytes. This would mean that the reader is probably not
+    // expecting compression?
+    let mut writer = IpcWriter::new(&mut buffer).with_compression(None);
     writer.finish(&mut roblox_data).expect("Writing to buffer");
 
     // generate the buffer for storage

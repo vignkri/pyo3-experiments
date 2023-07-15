@@ -8,10 +8,11 @@ ENCODING: str = "utf-8"
 def handler(msg: bytes) -> bytes:
     """Get a specific output from the system"""
 
-    with pa.ipc.open_stream(msg) as reader:
-        schema = reader.schema
-        batches = [b for b in reader]
-        print("Received schema: %s" % schema)
+    # note! this reads as a file instead of a running stream which is causing
+    # the difference in bytes and correspondingly the overal operational
+    # error across the rust-python divide
+    file = pa.ipc.open_file(msg)
+    print("Received schema: %s" % file)
 
     data = "Hello".encode(ENCODING)
     return data
