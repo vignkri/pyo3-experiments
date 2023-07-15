@@ -8,6 +8,10 @@ ENCODING: str = "utf-8"
 def handler(msg: bytes) -> bytes:
     """Get a specific output from the system"""
 
-    print("'%s' from Rust"  % msg.decode(ENCODING))
+    with pa.ipc.open_stream(msg) as reader:
+        schema = reader.schema
+        batches = [b for b in reader]
+        print("Received schema: %s" % schema)
+
     data = "Hello".encode(ENCODING)
     return data

@@ -3,15 +3,21 @@
 //! Testing the interoperability of PyO3 with messages sent to Rust
 //! and passed from python using bytes that are parsed back.
 
+use polars::{
+    io::{SerReader, SerWriter},
+    prelude::IpcWriter,
+};
 use pyo3::prelude::*;
 use std::{fs::File, io::Read, marker::PhantomData};
 
+/// Initialiser for the python handle
 struct PythonHandler<'a> {
     entry_file: String,
     phantom: PhantomData<&'a u8>,
 }
 
 impl<'a> PythonHandler<'a> {
+    /// Generate the new handle for handling operations
     fn new(path: &str) -> Self {
         let mut locn = env!("CARGO_MANIFEST_DIR").to_owned();
         locn.push_str(path);
@@ -27,7 +33,7 @@ impl<'a> PythonHandler<'a> {
         }
     }
 
-    ///
+    /// Run the python handle as long as <T> can be converted to a python object
     fn run<T: pyo3::IntoPy<Py<PyAny>>>(&self, data: Box<T>) -> Result<Vec<u8>, PyErr> {
         // generate a result from the python interface
         let res = Python::with_gil(|python| -> Result<Vec<u8>, PyErr> {
@@ -64,14 +70,23 @@ fn main() {
     let snake = PythonHandler::new("/cart/entry.py");
 
     // Store in box and retrieve from box
-    let data = String::from("hello");
-    let argument_data = data.as_bytes();
-    let as_boxed = Box::new(argument_data);
+    let mut roblox_data = polars::io::csv::CsvReader::from_path("./data/RBLX.csv")
+        .expect("unable to open data")
+        .has_header(true)
+        // .with_schema (can be used for verifying schema of the values)
+        .finish()
+        .expect("unable to parse to csv dataframe");
 
-    // generate result
-    let result_from_python = snake.run(as_boxed);
+    let mut buffer = Vec::new();
+    let mut writer = IpcWriter::new(&mut buffer);
+    writer.finish(&mut roblox_data).expect("Writing to buffer");
 
-    // run from python
+    // generate the buffer for storage
+    let dataframe = Box::new(buffer.as_slice());
+
+    // send forward to the buffer and thereby to the system
+    let result_from_python = snake.run(dataframe);
+    // // run from python
     match result_from_python {
         Ok(inner) => {
             let byte_as_str = String::from_utf8(inner).unwrap();

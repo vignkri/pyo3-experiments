@@ -1,6 +1,6 @@
 .venv/
 .ruff_cache/
-
+data/
 
 # Added by cargo
 
