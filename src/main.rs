@@ -7,7 +7,7 @@ use polars::{
     io::{SerReader, SerWriter},
     prelude::IpcWriter,
 };
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyBytes};
 use std::{fs::File, io::Read, marker::PhantomData};
 
 /// Initialiser for the python handle
@@ -34,7 +34,7 @@ impl<'a> PythonHandler<'a> {
     }
 
     /// Run the python handle as long as <T> can be converted to a python object
-    fn run<T: pyo3::IntoPy<Py<PyAny>>>(&self, data: Box<T>) -> Result<Vec<u8>, PyErr> {
+    fn run(&self, data: Box<&[u8]>) -> Result<Vec<u8>, PyErr> {
         // generate a result from the python interface
         let res = Python::with_gil(|python| -> Result<Vec<u8>, PyErr> {
             // log the currently utilised version of python
