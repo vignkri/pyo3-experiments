@@ -1,6 +1,7 @@
 #!/.venv/bin/python
 
 import pyarrow as pa
+import polars as pl
 
 # static configurations for the operations
 ENCODING: str = "utf-8"
@@ -11,8 +12,10 @@ def handler(msg: bytes) -> bytes:
     # note! this reads as a file instead of a running stream which is causing
     # the difference in bytes and correspondingly the overal operational
     # error across the rust-python divide
-    file = pa.ipc.open_file(msg)
-    print("Received schema: %s" % file)
+    df = pl.read_ipc(msg)
+
+    # Operate on the dataframe
+    print("Dataframe: %s" % df)
 
     data = "Hello".encode(ENCODING)
     return data
