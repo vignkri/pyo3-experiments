@@ -13,7 +13,7 @@ fn main() {
     pyo3::prepare_freethreaded_python();
 
     // generate a result from the python interface
-    let result_from_python = Python::with_gil(|python| -> Vec<u8> {
+    let result_from_python = Python::with_gil(|python| -> Result<Vec<u8>, PyErr> {
         // log the currently utilised version of python
         let version_info = python.version_info();
         println!("Python: {:?}", version_info);
@@ -28,20 +28,24 @@ fn main() {
         let data = String::from("hello");
         let argument_data = data.as_bytes();
 
-        let result: PyResult<&PyAny> = app.call((argument_data.into_py(python),), None);
-        match result {
-            Ok(i) => {
-                let data: &[u8] = FromPyObject::extract(i).unwrap();
-                let byte_array = data.iter().map(|v| *v).collect::<Vec<u8>>();
-                byte_array
-            }
-            Err(e) => {
-                panic!("unable to handle message, {:?}", e);
-            }
-        }
+        let result: &PyAny = app.call((argument_data.into_py(python),), None)?;
+
+        // handle data conversions to the internal rust objects
+        let data: &[u8] = result.extract()?;
+        let byte_vec = data.iter().map(|v| *v).collect::<Vec<u8>>();
+
+        // return a valid byte vec
+        Ok(byte_vec)
     });
 
     // run from python
-    let byte_as_str = String::from_utf8(result_from_python).unwrap();
-    println!("'{:?}', from Python", byte_as_str);
+    match result_from_python {
+        Ok(inner) => {
+            let byte_as_str = String::from_utf8(inner).unwrap();
+            println!("'{:?}', from Python", byte_as_str);
+        }
+        Err(errmsg) => {
+            println!("Python Error: {:?}", errmsg);
+        }
+    }
 }
