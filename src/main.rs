@@ -5,7 +5,7 @@
 
 use polars::{
     io::{SerReader, SerWriter},
-    prelude::{IpcStreamWriter, IpcWriter},
+    prelude::IpcStreamWriter,
 };
 use pyo3::prelude::*;
 use std::{fs::File, io::Read, marker::PhantomData};
@@ -70,16 +70,16 @@ fn main() {
     let snake = PythonHandler::new("/cart/entry.py");
 
     // Store in box and retrieve from box
-    let mut roblox_data = polars::io::csv::CsvReader::from_path("./data/RBLX.csv")
+    let mut roblox_data = polars::io::csv::CsvReader::from_path("./data/intermediate/RBLX.csv")
         .expect("unable to open data")
         .has_header(true)
         // .with_schema (can be used for verifying schema of the values)
         .finish()
         .expect("unable to parse to csv dataframe");
 
-    // issue: only writes 39723 bytes and the buffer also is only 39727 bytes. However, the expected
-    // metadata bytes are approximately 1330795073 bytes. This would mean that the reader is probably not
-    // expecting compression. The ipcWriter actually writes to a file and not a stream.
+    // IpcStreamWriter writes to a stream and can be read as a stream on Python's side, however,
+    // IpcWriter writes similar to a file and therefore needs to be handled as a file on Python's
+    // side instead.
     let mut buffer = Vec::new();
     let mut writer = IpcStreamWriter::new(&mut buffer).with_compression(None);
     writer.finish(&mut roblox_data).expect("Writing to buffer");
